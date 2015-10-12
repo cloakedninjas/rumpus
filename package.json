@@ -1,7 +1,7 @@
 {
   "name": "rumpus",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.1",
+  "description": "A multiplayer game server for NodeJS",
   "main": "index.js",
   "scripts": {
     "test": "mocha test --recursive"
