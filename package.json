@@ -1,5 +1,5 @@
 {
-  "name": "build-it-beavers-server",
+  "name": "rumpus",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,10 +8,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@bitbucket.org:mangahigh/build-it-beavers-server.git"
+    "url": "git@github.com:cloakedninjas/rumpus.git"
   },
   "author": "Daniel Jackson <daniel@cloakedninjas.co.uk> (http://cloakedninjas.co.uk)",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "debug": "^2.2.0",
     "lodash": "^3.10.1",
