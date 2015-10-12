@@ -41,7 +41,7 @@ RedisAdapter.prototype.indexGet = function (index, callback) {
 };
 
 RedisAdapter.prototype.indexRemove = function (index, value) {
-  debug('Remove %s from index: $s', value, index);
+  debug('Remove %s from index: %s', value, index);
   index = this._prefixKey(index);
 
   return this._client.srem(index, value);

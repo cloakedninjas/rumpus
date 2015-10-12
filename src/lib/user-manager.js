@@ -40,6 +40,11 @@ UserManager.prototype.createUser = function (socket) {
  */
 UserManager.prototype.getById = function (id, callback) {
   debug('getById(%s)', id);
+
+  if (!callback) {
+    throw new Error('getById requires a callback');
+  }
+
   this.server.storageAdapter.get(User.getSerializableKey(id), function (err, data) {
     if (!err) {
       debug('Fetched user: %s', id);
@@ -90,6 +95,10 @@ UserManager.prototype.isUserInRoom = function (userId, roomName) {
  * @param {Function} callback
  */
 UserManager.prototype.getRoomsUserIsIn = function (userId, callback) {
+  if (!callback) {
+    throw new Error('getRoomsUserIsIn requires a callback');
+  }
+
   var socket = this.server.io.sockets.connected[userId],
       rooms = [],
       callbackCount = 0;

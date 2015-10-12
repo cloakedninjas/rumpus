@@ -93,6 +93,10 @@ RoomManager.prototype.changeRoom = function (user, oldRoom, newRoom) {
  * @param {Function} callback
  */
 RoomManager.prototype.getByName = function (name, callback) {
+  if (!callback) {
+    throw new Error('getById requires a callback');
+  }
+
   this.server.storageAdapter.get(Room.getSerializableKey(name), function (err, data) {
     if (!err) {
       var room = new Room(this.server.io, name, this.server.storageAdapter);
@@ -117,6 +121,10 @@ RoomManager.prototype.getByName = function (name, callback) {
 RoomManager.prototype.getRoomMembers = function (roomName, callback) {
   debug('Getting room members for %s', roomName);
 
+  if (!callback) {
+    throw new Error('getById requires a callback');
+  }
+
   var namespace = '/',
       socketIds = this.server.io.nsps[namespace].adapter.rooms[roomName];
 
@@ -129,7 +137,7 @@ RoomManager.prototype.getRoomMembers = function (roomName, callback) {
       var userManager = this.server.userManager;
 
       _.each(socketIds, function (val, socketId) {
-         userManager.getById(socketId, function (err, user) {
+        userManager.getById(socketId, function (err, user) {
           if (!err) {
             users.push(user);
           }
