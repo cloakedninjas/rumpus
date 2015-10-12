@@ -2,7 +2,7 @@
 
 var _ = require('lodash'),
     User = require('../entity/user'),
-    debug = require('debug')('PKG:UserManager'),
+    debug = require('debug')('rumpus:UserManager'),
     MESSAGE = require('../lib/message-types.js');
 
 /**

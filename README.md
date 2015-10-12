@@ -1,13 +1,13 @@
-# PKG
+# rumpus
 
 ## Installation
 
-`npm install PKG --save`
+`npm install rumpus --save`
 
 ## Usage
 
 ```javascript
-var server = require('PKG')(3000, {
+var server = require('rumpus')(3000, {
   version: 1
 });
 
@@ -19,16 +19,16 @@ server.addMessageHandler('USER_REQUEST_GAME', function (socket, data) {
 ```
 
 ## Overview
-PKG provides a multiplayer game server built on top of [socket.io](https://socket.io). Out of the box, PKG will create a Lobby where clients will initially connect to. Clients can join any number of other rooms to support "chat channels", or clients can be moved out of the Lobby and into a game room if required.
+rumpus provides a multiplayer game server built on top of [socket.io](https://socket.io). Out of the box, rumpus will create a Lobby where clients will initially connect to. Clients can join any number of other rooms to support "chat channels", or clients can be moved out of the Lobby and into a game room if required.
 
-PKG provides hooks for listening to client messages, upon which your application can respond.
+rumpus provides hooks for listening to client messages, upon which your application can respond.
 
-PKG also packages the `events` class. The Server and Room classes trigger events, these are detailed in the [events section](https://github.com/cloakedninjas/PKG#events)
+rumpus also packages the `events` class. The Server and Room classes trigger events, these are detailed in the [events section](https://github.com/cloakedninjas/rumpus#events)
 
 ## API
 
 ### Server(port:Number, opts:Object)
-The only required parameter is the port you wish to listen on. You may pass any of the [options](https://github.com/cloakedninjas/PKG#options) as an object.
+The only required parameter is the port you wish to listen on. You may pass any of the [options](https://github.com/cloakedninjas/rumpus#options) as an object.
 
 ### Server.addMessageHandler(messageName:String, fn:Function):Server
 Binds to any socket message the client may send. `fn` is called with: (`Socket, [args[]...]`)
@@ -39,7 +39,7 @@ Remove a previously bound message handler to all connected users and prevent the
 ### Server.on(eventName:String):Server
 
 ## Events
-As well as socket messages sent, PKG will emit certain events you can listen to.
+As well as socket messages sent, rumpus will emit certain events you can listen to.
 
 ### Server
 - `error` - triggered when an error occurs

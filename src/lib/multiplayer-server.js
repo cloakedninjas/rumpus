@@ -6,7 +6,7 @@ var events = require('events'),
     sio_redis = require('socket.io-redis'),
     redis = require('redis'),
     _ = require('lodash'),
-    debug = require('debug')('PKG'),
+    debug = require('debug')('rumpus'),
     MemoryAdapter = require('../adapter/memory'),
     RedisAdapter = require('../adapter/redis'),
     RoomManager = require('./room-manager'),
@@ -172,7 +172,7 @@ MultiplayerServer.prototype._handleUserDisconnect = function (user) {
 MultiplayerServer.EVENT_USER_CONNECT = 'user-connect';
 MultiplayerServer.EVENT_USER_DISCONNECT = 'user-disconnect';
 
-MultiplayerServer.NS_REDIS_CORE = 'PKG';
+MultiplayerServer.NS_REDIS_CORE = 'rumpus';
 MultiplayerServer.NS_REDIS_SIO = 'sio';
 
 module.exports = MultiplayerServer;

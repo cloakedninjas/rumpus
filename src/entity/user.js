@@ -3,7 +3,7 @@
 var events = require('events'),
     util = require('util'),
     _ = require('lodash'),
-    debug = require('debug')('PKG:User');
+    debug = require('debug')('rumpus:User');
 
 /**
  * @class User

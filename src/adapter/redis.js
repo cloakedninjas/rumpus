@@ -1,6 +1,6 @@
 'use strict';
 
-var debug = require('debug')('PKG:RedisAdaptor');
+var debug = require('debug')('rumpus:RedisAdaptor');
 
 function RedisAdapter(prefix, client) {
   this._prefix = prefix;
