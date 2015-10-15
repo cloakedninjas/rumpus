@@ -169,6 +169,10 @@ MultiplayerServer.prototype._handleUserDisconnect = function (user) {
   this.emit(MultiplayerServer.EVENT_USER_DISCONNECT, user);
 };
 
+MultiplayerServer.prototype.close = function () {
+  this.io.close();
+};
+
 MultiplayerServer.EVENT_USER_CONNECT = 'user-connect';
 MultiplayerServer.EVENT_USER_DISCONNECT = 'user-disconnect';
 
