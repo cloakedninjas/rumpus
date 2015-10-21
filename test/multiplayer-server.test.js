@@ -1,7 +1,7 @@
 var expect = require('chai').expect,
     io = require('socket.io-client'),
     MESSAGE = require('../src/lib/message-types.js'),
-    testOptions = require('./testOptions'),
+    testOptions = require('./test-options'),
     MultiplayerServer = require('../src/lib/multiplayer-server'),
     serverInstance;
 

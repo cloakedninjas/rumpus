@@ -159,7 +159,7 @@ MultiplayerServer.prototype._handleUserDisconnect = function (user) {
           if (!err) {
             room.removeUser(user);
           }
-        })
+        });
       }, this);
     }
   }.bind(this));

@@ -78,6 +78,7 @@ Room.prototype.addUser = function (user) {
 Room.prototype.removeUser = function (user) {
   user.socket.to(this.name).emit(MESSAGE.USER_LEAVE, user.id);
   user.socket.leave(this.name);
+  this.emit(Room.EVENT_USER_LEAVE, user);
 
   if (this.canBeClosed && this.getOccupancy() === 0) {
     this.emit(Room.EVENT_ROOM_EMPTY);
@@ -117,6 +118,7 @@ Room.prototype.broadcast = function (message, data) {
 Room.EVENT_ROOM_EMPTY = 'room-empty';
 Room.EVENT_ROOM_FULL = 'room-full';
 Room.EVENT_USER_ENTER = 'user-enter';
+Room.EVENT_USER_LEAVE = 'user-leave';
 
 Room.INDEX_ROOM_USERS = 'room-users';
 

@@ -5,16 +5,19 @@ var expect = require('chai').expect,
     Room = require('../src/entity/room'),
     User = require('../src/entity/user'),
     MESSAGE = require('../src/lib/message-types'),
-    testOptions = require('./testOptions'),
+    testOptions = require('./test-options'),
     MultiplayerServer = require('../src/lib/multiplayer-server'),
-    FakeSocket = require('./mockSocket'),
     serverInstance;
 
 describe('Room Manager', function () {
+  var sandbox = sinon.sandbox.create();
+
   beforeEach(function () {
     serverInstance = new MultiplayerServer(3000);
   });
+
   afterEach(function () {
+    sandbox.restore();
     serverInstance.io.close();
   });
 
@@ -31,16 +34,16 @@ describe('Room Manager', function () {
   });
 
   describe('#addUserToLobby', function () {
-    it('should add the user into the lobby', function () {
-      var roomManager = new RoomManager(serverInstance),
-          user = new User('aabb11ss');
+    it('should add the user into the lobby', function (done) {
+      var spy = sandbox.spy(serverInstance.roomManager.lobby, 'addUser'),
+          client1 = io.connect(testOptions.socketURL, testOptions.socketOptions);
 
-      roomManager.createLobby();
-      var spy = sinon.spy(roomManager.lobby, 'addUser');
-
-      user.setSocket(new FakeSocket());
-      roomManager.addUserToLobby(user);
-      expect(spy.calledWith(user)).to.equal(true);
+      client1.on('connect', function () {
+        client1.on(MESSAGE.LOBBY_USERS, function () {
+          expect(spy.called).to.equal(true);
+          done();
+        });
+      });
     });
 
     it('should broadcast that a user has joined if configured to', function (done) {

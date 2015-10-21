@@ -8,7 +8,7 @@ var chai = require('chai'),
     User = require('../src/entity/user'),
     Room = require('../src/entity/room'),
     MESSAGE = require('../src/lib/message-types'),
-    testOptions = require('./testOptions'),
+    testOptions = require('./test-options'),
     MultiplayerServer = require('../src/lib/multiplayer-server'),
     serverInstance;
 

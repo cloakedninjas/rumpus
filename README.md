@@ -68,6 +68,6 @@ As well as socket messages sent, rumpus will emit certain events you can listen 
 
 ## Tests
 
-Slightly flakey in that they cannot all be run in one go. socket.io is taking too long to close before the next test runs and is in a bad state. Running them in batches works:
+For some reason, `room.test.js` puts the test suite into an odd state, causing sporadic failures further down the line. There is a Grunt task which will run each directory's tests in isolation: 
 
-`mocha test/*.test.js && mocha test/entity/*.test.js && mocha test/adapter/*.test.js`
+`grunt test`
