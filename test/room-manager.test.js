@@ -13,7 +13,7 @@ describe('Room Manager', function () {
   var sandbox = sinon.sandbox.create();
 
   beforeEach(function () {
-    serverInstance = new MultiplayerServer(3000);
+    serverInstance = new MultiplayerServer(testOptions.serverPort);
   });
 
   afterEach(function () {
@@ -48,7 +48,7 @@ describe('Room Manager', function () {
 
     it('should broadcast that a user has joined if configured to', function (done) {
       serverInstance.io.close();
-      serverInstance = new MultiplayerServer(3000, {
+      serverInstance = new MultiplayerServer(testOptions.serverPort, {
         sendLobbyUsers: false,
         broadcastNewUserToLobby: true
       });
@@ -71,7 +71,7 @@ describe('Room Manager', function () {
 
     it('should not broadcast that a user has joined if configured not to', function (done) {
       serverInstance.io.close();
-      serverInstance = new MultiplayerServer(3000, {
+      serverInstance = new MultiplayerServer(testOptions.serverPort, {
         sendLobbyUsers: false,
         broadcastNewUserToLobby: false
       });
@@ -106,7 +106,7 @@ describe('Room Manager', function () {
 
     it('should only tell the new user who\'s in the lobby if configured to', function (done) {
       serverInstance.io.close();
-      serverInstance = new MultiplayerServer(3000, {
+      serverInstance = new MultiplayerServer(testOptions.serverPort, {
         sendLobbyUsers: true,
         broadcastNewUserToLobby: false
       });
@@ -135,7 +135,7 @@ describe('Room Manager', function () {
 
     it('should not only tell the new user who\'s in the lobby if configured not to', function (done) {
       serverInstance.io.close();
-      serverInstance = new MultiplayerServer(3000, {
+      serverInstance = new MultiplayerServer(testOptions.serverPort, {
         sendLobbyUsers: false,
         broadcastNewUserToLobby: false
       });

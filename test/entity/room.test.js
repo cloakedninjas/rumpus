@@ -17,7 +17,7 @@ describe('Room Entity', function () {
       serverInstance;
 
   beforeEach(function () {
-    serverInstance = new MultiplayerServer(3000);
+    serverInstance = new MultiplayerServer(testOptions.serverPort);
   });
 
   afterEach(function () {

@@ -7,7 +7,7 @@ var expect = require('chai').expect,
 
 describe('Multiplayer Server', function () {
   beforeEach(function () {
-    serverInstance = new MultiplayerServer(3000);
+    serverInstance = new MultiplayerServer(testOptions.serverPort);
   });
 
   afterEach(function () {
@@ -16,7 +16,7 @@ describe('Multiplayer Server', function () {
 
   it('should report the version number on connect', function (done) {
     serverInstance.io.close();
-    serverInstance = new MultiplayerServer(3000, {
+    serverInstance = new MultiplayerServer(testOptions.serverPort, {
       version: 1471
     });
 
@@ -107,7 +107,7 @@ describe('Multiplayer Server', function () {
 
     serverInstance.io.close();
 
-    serverInstance = new MultiplayerServer(3000, {
+    serverInstance = new MultiplayerServer(testOptions.serverPort, {
       waitForPropsBeforeLobby: true
     });
 

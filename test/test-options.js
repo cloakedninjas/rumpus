@@ -1,5 +1,6 @@
 module.exports = {
-  socketURL: 'http://localhost:3000',
+  serverPort: 4000,
+  socketURL: 'http://localhost:4000',
   socketOptions: {
     transports: ['websocket'],
     'force new connection': true

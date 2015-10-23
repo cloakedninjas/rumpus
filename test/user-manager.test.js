@@ -19,7 +19,7 @@ describe('User Manager', function () {
   describe('#createUser', function () {
     this.slow(300);
     before(function () {
-      serverInstance = new MultiplayerServer(3000);
+      serverInstance = new MultiplayerServer(testOptions.serverPort);
     });
 
     after(function () {
@@ -62,7 +62,7 @@ describe('User Manager', function () {
 
     it('should return correctly', function (done) {
       this.slow(300);
-      serverInstance = new MultiplayerServer(3000);
+      serverInstance = new MultiplayerServer(testOptions.serverPort);
 
       var client = io.connect(testOptions.socketURL, testOptions.socketOptions),
           room = serverInstance.roomManager.createRoom('new-room');
@@ -95,7 +95,7 @@ describe('User Manager', function () {
 
     it('should return a list of rooms the user is in', function (done) {
       this.slow(300);
-      serverInstance = new MultiplayerServer(3000);
+      serverInstance = new MultiplayerServer(testOptions.serverPort);
 
       var client = io.connect(testOptions.socketURL, testOptions.socketOptions),
           room1 = serverInstance.roomManager.createRoom('room-1'),
