@@ -1,6 +1,6 @@
 {
   "name": "rumpus",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "A multiplayer game server for NodeJS",
   "main": "index.js",
   "scripts": {

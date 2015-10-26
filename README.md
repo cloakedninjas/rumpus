@@ -27,16 +27,58 @@ rumpus also packages the `events` class. The Server and Room classes trigger eve
 
 ## API
 
+### Server
+
 ### Server(port:Number, opts:Object)
 The only required parameter is the port you wish to listen on. You may pass any of the [options](https://github.com/cloakedninjas/rumpus#options) as an object.
 
-### Server.addMessageHandler(messageName:String, fn:Function):Server
+### addMessageHandler(messageName:String, fn:Function):Server
 Binds to any socket message the client may send. `fn` is called with: (`Socket, [args[]...]`)
 
-### Server.removeMessageHandler(messageName:String):Server
+### removeMessageHandler(messageName:String):Server
 Remove a previously bound message handler to all connected users and prevent the handler from being bound to future clients.
 
-### Server.on(eventName:String):Server
+### on(eventName:String):Server
+Attach a listener to events the server can emit, see [events section](https://github.com/cloakedninjas/rumpus#events)
+
+### close()
+Close the server, kills the Socket.io server
+
+---
+
+### RoomManager
+
+### addUserToLobby(user:User):RoomManager
+Adds a user into the lobby. This is only required if you have the config options `waitForPropsBeforeLobby` set to `true`. Otherwise users are already placed into the lobby on connect.
+
+### createRoom([name:String], [maxUsers:number], [canBeClosed:boolean]):Room
+Create a new room. If no room name is provided, a random UUID is generated.
+If `maxUsers` is not provided, no room limit is enforced.
+`canBeClosed` comes into effect when the room is empty. Be default, the last user to leave a room will cause that room to be closed.
+
+### changeRoom(user:User, oldRoom:Room, newRoom:Room):RoomManager
+Move a user from one room to another
+
+### getByName(name:String):Promise
+Get a Room by its name. This is an asynchronous operation.
+
+### getRoomMembers(name:String):Promise
+Get an array of Users by the name of the room. This is an asynchronous operation.
+
+---
+
+### UserManager
+
+### getById(id:String):Promise
+Get a User by their ID. This is an asynchronous operation.
+
+### isUserInRoom(userId:String, roomName:String):boolean
+Check if a user is a member of a given room. Users can be in multiple rooms at once.
+
+### getRoomsUserIsIn(userId:String):Promise
+Given a user ID, get an array of Rooms they are in. This is an asynchronous operation.
+
+---
 
 ## Events
 As well as socket messages sent, rumpus will emit certain events you can listen to.

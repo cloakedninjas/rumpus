@@ -18,6 +18,7 @@ function RoomManager(server) {
 
 RoomManager.prototype.createLobby = function () {
   this.lobby = this.createRoom(RoomManager.LOBBY_NAME, null, false);
+  return this;
 };
 
 /**
@@ -39,6 +40,8 @@ RoomManager.prototype.addUserToLobby = function (user) {
 
   // add the user into the lobby
   this.lobby.addUser(user);
+
+  return this;
 };
 
 /**
@@ -168,15 +171,8 @@ RoomManager.prototype.broadcastRoomMembers = function (roomName, recipientUser) 
 
         recipientUser.socket.emit(MESSAGE.LOBBY_USERS, broadcastUsers);
       });
-  /*this.getRoomMembers(roomName, function (err, users) {
-    var broadcastUsers = [];
 
-    _.each(users, function (user) {
-      broadcastUsers.push(user.toBroadcastData());
-    });
-
-    recipientUser.socket.emit(MESSAGE.LOBBY_USERS, broadcastUsers);
-  });*/
+  return this;
 };
 
 RoomManager.LOBBY_NAME = 'lobby';
