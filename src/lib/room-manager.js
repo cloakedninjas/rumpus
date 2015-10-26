@@ -1,6 +1,7 @@
 'use strict';
 
 var _ = require('lodash'),
+    Q = require('q'),
     uuid = require('node-uuid'),
     debug = require('debug')('rumpus:RoomManager'),
     Room = require('../entity/room'),
@@ -90,78 +91,65 @@ RoomManager.prototype.changeRoom = function (user, oldRoom, newRoom) {
  * Lookup a room by its name
  *
  * @param {string} name
- * @param {Function} callback
+ * @return {promise}
  */
-RoomManager.prototype.getByName = function (name, callback) {
-  if (!callback) {
-    throw new Error('getById requires a callback');
-  }
+RoomManager.prototype.getByName = function (name) {
+  return this.server.storageAdapter.get(Room.getSerializableKey(name))
+      .then(function (data) {
+        var room = new Room(this.server.io, name, this.server.storageAdapter);
 
-  this.server.storageAdapter.get(Room.getSerializableKey(name), function (err, data) {
-    if (!err) {
-      var room = new Room(this.server.io, name, this.server.storageAdapter);
-
-      if (data) {
-        room.hydrate(data);
-      }
-
-      callback(err, room);
-    }
-    else {
-      callback(err, null);
-    }
-  }.bind(this));
+        if (data) {
+          room.hydrate(data);
+          return room;
+        }
+      }.bind(this));
 };
 
 /**
  *
  * @param {string} roomName
- * @param {Function} callback
+ * @return {promise}
  */
-RoomManager.prototype.getRoomMembers = function (roomName, callback) {
+RoomManager.prototype.getRoomMembers = function (roomName) {
   debug('Getting room members for %s', roomName);
 
-  if (!callback) {
-    throw new Error('getById requires a callback');
-  }
-
   var namespace = '/',
-      socketIds = this.server.io.nsps[namespace].adapter.rooms[roomName];
+      socketIds = this.server.io.nsps[namespace].adapter.rooms[roomName],
+      deferred = Q.defer();
 
   if (socketIds) {
     var socketIdCount = Object.keys(socketIds).length,
         users = [],
-        callbackCount = 0;
+        userCount = 0;
 
     if (socketIdCount > 0) {
       var userManager = this.server.userManager;
 
       _.each(socketIds, function (val, socketId) {
-        userManager.getById(socketId, function (err, user) {
-          if (!err) {
-            users.push(user);
-          }
+        userManager.getById(socketId)
+            .then(function (user) {
+              users.push(user);
 
-          callbackCount++;
+              userCount++;
 
-          if (callbackCount === socketIdCount) {
-            debug('Found %d room members for %s', users.length, roomName);
-            callback(null, users);
-          }
-        });
+              if (userCount === socketIdCount) {
+                debug('Found %d room members for %s', users.length, roomName);
+                deferred.resolve(users);
+              }
+            });
       });
     }
     else {
       debug('No users in %s', roomName);
-      callback(null, []);
+      deferred.resolve([]);
     }
   }
   else {
     debug('No users in %s', roomName);
-    callback(null, []);
+    deferred.resolve([]);
   }
 
-  return this;
+  return deferred.promise;
 };
 
 /**
@@ -170,7 +158,17 @@ RoomManager.prototype.getRoomMembers = function (roomName, callback) {
  * @param {User} recipientUser
  */
 RoomManager.prototype.broadcastRoomMembers = function (roomName, recipientUser) {
-  this.getRoomMembers(roomName, function (err, users) {
+  this.getRoomMembers(roomName)
+      .then(function (users) {
+        var broadcastUsers = [];
+
+        _.each(users, function (user) {
+          broadcastUsers.push(user.toBroadcastData());
+        });
+
+        recipientUser.socket.emit(MESSAGE.LOBBY_USERS, broadcastUsers);
+      });
+  /*this.getRoomMembers(roomName, function (err, users) {
     var broadcastUsers = [];
 
     _.each(users, function (user) {
@@ -178,7 +176,7 @@ RoomManager.prototype.broadcastRoomMembers = function (roomName, recipientUser) 
     });
 
     recipientUser.socket.emit(MESSAGE.LOBBY_USERS, broadcastUsers);
-  });
+  });*/
 };
 
 RoomManager.LOBBY_NAME = 'lobby';

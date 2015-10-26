@@ -1,6 +1,7 @@
 'use strict';
 
 var _ = require('lodash'),
+    Q = require('q'),
     User = require('../entity/user'),
     debug = require('debug')('rumpus:UserManager'),
     MESSAGE = require('../lib/message-types.js');
@@ -36,41 +37,40 @@ UserManager.prototype.createUser = function (socket) {
  * Lookup a user by their ID
  *
  * @param {string} id
- * @param {Function} callback
+ * @return {promise}
  */
-UserManager.prototype.getById = function (id, callback) {
+UserManager.prototype.getById = function (id) {
   debug('getById(%s)', id);
 
-  if (!callback) {
-    throw new Error('getById requires a callback');
-  }
+  /*if (Array.isArray(id)) {
+   return Q.all(_.map(id, this.getById));
+   }*/
 
-  this.server.storageAdapter.get(User.getSerializableKey(id), function (err, data) {
-    if (!err) {
-      debug('Fetched user: %s', id);
-      var user = new User(id, this.server.storageAdapter);
+  var deferred = Q.defer();
+  this.server.storageAdapter.get(User.getSerializableKey(id))
+      .then(function (data) {
+        debug('Fetched user: %s', id);
+        var user = new User(id, this.server.storageAdapter);
 
-      user.setSocket(this.server.io.sockets.connected[id]);
+        user.setSocket(this.server.io.sockets.connected[id]);
 
-      if (data) {
-        user.hydrate(data);
-      }
+        if (data) {
+          user.hydrate(data);
+        }
 
-      callback(err, user);
-    }
-    else {
-      debug('Error: %s', err);
-      callback(err, null);
-    }
-  }.bind(this));
+        deferred.resolve(user);
+      }.bind(this), deferred.reject);
+
+  return deferred.promise;
 };
 
 /**
  *
  * @param {User} user
+ * @return {promise}
  */
 UserManager.prototype.deleteUser = function (user) {
-  this.server.storageAdapter.delete(User.getSerializableKey(user.id));
+  return this.server.storageAdapter.delete(User.getSerializableKey(user.id));
 };
 
 /**
@@ -92,41 +92,38 @@ UserManager.prototype.isUserInRoom = function (userId, roomName) {
 /**
  *
  * @param {string} userId
- * @param {Function} callback
+ * @returns {promise}
  */
-UserManager.prototype.getRoomsUserIsIn = function (userId, callback) {
-  if (!callback) {
-    throw new Error('getRoomsUserIsIn requires a callback');
-  }
-
+UserManager.prototype.getRoomsUserIsIn = function (userId) {
   var socket = this.server.io.sockets.connected[userId],
       rooms = [],
-      callbackCount = 0;
+      roomCount = 0,
+      deferred = Q.defer();
 
   if (socket && socket.rooms.length > 0) {
     var roomManager = this.server.roomManager;
 
     _.each(socket.rooms, function (roomName) {
-      roomManager.getByName(roomName, function (err, room) {
-        if (!err) {
+      roomManager.getByName(roomName).then(function (room) {
+        roomCount++;
+
+        if (room) {
           rooms.push(room);
         }
 
-        callbackCount++;
-
-        if (callbackCount === socket.rooms.length) {
+        if (roomCount === socket.rooms.length) {
           debug('User %s belongs to %d rooms', userId, socket.rooms.length);
-          callback(err, rooms);
+          deferred.resolve(rooms);
         }
       });
     });
   }
   else {
     debug('User %s belongs to 0 rooms', userId);
-    callback(null, []);
+    deferred.resolve([]);
   }
 
-  return this;
+  return deferred.promise;
 };
 
 module.exports = UserManager;

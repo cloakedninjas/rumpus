@@ -6,10 +6,8 @@ describe('Storage Adapter: Memory', function () {
   it('should return undefined for a non-existent key', function (done) {
     var adapter = new MemoryAdapter();
 
-    adapter.get('bad-key', function (err, value) {
-      expect(err).to.equal(null);
+    adapter.get('bad-key').then(function (value) {
       expect(value).to.equal(undefined);
-
       done();
     });
   });
@@ -19,16 +17,14 @@ describe('Storage Adapter: Memory', function () {
 
     adapter.set('good-key', {
       name: 'billy'
-    }, function () {
-      adapter.get('good-key', function (err, value) {
-        expect(err).to.equal(null);
-        expect(value).to.be.an('object');
-        expect(value.name).to.equal('billy');
-
-        done();
-      });
-    });
-
+    })
+        .then(function () {
+          adapter.get('good-key')
+              .then(function (value) {
+                expect(value).to.be.an('object');
+                expect(value.name).to.equal('billy');
+                done();
+              });
+        });
   });
-
 });

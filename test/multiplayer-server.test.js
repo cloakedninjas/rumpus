@@ -11,11 +11,11 @@ describe('Multiplayer Server', function () {
   });
 
   afterEach(function () {
-    serverInstance.io.close();
+    serverInstance.close();
   });
 
   it('should report the version number on connect', function (done) {
-    serverInstance.io.close();
+    serverInstance.close();
     serverInstance = new MultiplayerServer(testOptions.serverPort, {
       version: 1471
     });
@@ -105,7 +105,7 @@ describe('Multiplayer Server', function () {
     var delay = 80;
     this.slow((delay * 2) + 400);
 
-    serverInstance.io.close();
+    serverInstance.close();
 
     serverInstance = new MultiplayerServer(testOptions.serverPort, {
       waitForPropsBeforeLobby: true

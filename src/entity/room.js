@@ -3,6 +3,7 @@
 var events = require('events'),
     util = require('util'),
     _ = require('lodash'),
+    debug = require('debug')('rumpus:Room'),
     User = require('./user'),
     MESSAGE = require('../lib/message-types');
 
@@ -39,12 +40,15 @@ Room.prototype.hydrate = function (properties) {
   return this;
 };
 
-Room.prototype.persist = function (callback) {
-  this.storageAdapter.set(Room.getSerializableKey(this.name), {
+/**
+ * @return {promise}
+ */
+Room.prototype.persist = function () {
+  return this.storageAdapter.set(Room.getSerializableKey(this.name), {
     canBeClosed: this.canBeClosed,
     maxUsers: this.maxUsers,
     properties: this.properties
-  }, callback);
+  });
 };
 
 /**
@@ -56,6 +60,8 @@ Room.prototype.addUser = function (user) {
   if (this.maxUsers && this.getOccupancy() >= this.maxUsers) {
     throw new Error('Room full');
   }
+
+  debug('Adding user %s into %s', user.id, this.name);
 
   user.socket.join(this.name);
   this.emit(Room.EVENT_USER_ENTER, user);
@@ -76,6 +82,7 @@ Room.prototype.addUser = function (user) {
  * @param {User} user
  */
 Room.prototype.removeUser = function (user) {
+  debug('Removing user %s from %s', user.id, this.name);
   user.socket.to(this.name).emit(MESSAGE.USER_LEAVE, user.id);
   user.socket.leave(this.name);
   this.emit(Room.EVENT_USER_LEAVE, user);

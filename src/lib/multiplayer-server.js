@@ -152,17 +152,15 @@ MultiplayerServer.prototype._handleUserConnect = function (socket) {
 MultiplayerServer.prototype._handleUserDisconnect = function (user) {
   debug('User %s disconnected from %s', user.id);
 
-  this.storageAdapter.indexGet(User.getUserRoomsIndexName(user.id), function (err, rooms) {
-    if (!err) {
-      _.each(rooms, function (roomName) {
-        this.roomManager.getByName(roomName, function (err, room) {
-          if (!err) {
-            room.removeUser(user);
-          }
-        });
-      }, this);
-    }
-  }.bind(this));
+  this.storageAdapter.indexGet(User.getUserRoomsIndexName(user.id))
+      .then(function (rooms) {
+        _.each(rooms, function (roomName) {
+          this.roomManager.getByName(roomName)
+              .then(function (room) {
+                room.removeUser(user);
+              });
+        }, this);
+      }.bind(this));
 
   this.userManager.deleteUser(user);
 
@@ -170,6 +168,7 @@ MultiplayerServer.prototype._handleUserDisconnect = function (user) {
 };
 
 MultiplayerServer.prototype.close = function () {
+  debug('Closing server');
   this.io.close();
 };
 

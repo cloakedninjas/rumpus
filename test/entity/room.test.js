@@ -22,28 +22,32 @@ describe('Room Entity', function () {
 
   afterEach(function () {
     sandbox.restore();
-    serverInstance.io.close();
+    serverInstance.close();
   });
 
   describe('#addUser', function () {
-    it('should add the user into the channel and trigger an event', function () {
+    it('should add the user into the channel and trigger an event', function (done) {
       var room = serverInstance.roomManager.createRoom('room-1'),
-          client1 = io.connect(testOptions.socketURL, testOptions.socketOptions);
+          client1 = io.connect(testOptions.socketURL, testOptions.socketOptions),
+          spy;
+
+      room.on(Room.EVENT_USER_ENTER, function () {
+        expect(spy).to.have.been.calledWith('room-1');
+        done();
+      });
 
       client1.on('connect', function () {
-        var spy = sandbox.spy(client1, 'join');
+        client1.on(MESSAGE.LOBBY_USERS, function () {
+          serverInstance.userManager.getById(client1.id)
+              .then(function (user) {
+                spy = sandbox.spy(user.socket, 'join');
 
-        serverInstance.userManager.getById(client1.id, function (err, user) {
-
-          room.on(Room.EVENT_USER_ENTER, function () {
-            expect(spy).to.have.been.calledWith('room-7');
-            done();
-          });
-
-          room.addUser(user);
+                room.addUser(user);
+              });
         });
       });
     });
+
 
     it('should trigger an event if there is a max room capacity and it is met', function (done) {
       this.slow(200);
@@ -59,14 +63,16 @@ describe('Room Entity', function () {
         var client2 = io.connect(testOptions.socketURL, testOptions.socketOptions);
         client2.on('connect', function () {
 
-          serverInstance.roomManager.getRoomMembers(RoomManager.LOBBY_NAME, function (err, users) {
-            _.each(users, function (user) {
-              serverInstance.roomManager.changeRoom(user, serverInstance.roomManager.lobby, room);
-            });
-          });
+          serverInstance.roomManager.getRoomMembers(RoomManager.LOBBY_NAME)
+              .then(function (users) {
+                _.each(users, function (user) {
+                  serverInstance.roomManager.changeRoom(user, serverInstance.roomManager.lobby, room);
+                });
+              });
         });
       });
     });
+
 
     it('should add to the user-rooms index', function (done) {
       this.slow(200);
@@ -74,21 +80,22 @@ describe('Room Entity', function () {
           client1 = io.connect(testOptions.socketURL, testOptions.socketOptions);
 
       client1.on('connect', function () {
-        serverInstance.userManager.getById(client1.id, function (err, user) {
-          var spy = sandbox.spy(serverInstance.storageAdapter, 'indexAdd');
+        serverInstance.userManager.getById(client1.id)
+            .then(function (user) {
+              var spy = sandbox.spy(serverInstance.storageAdapter, 'indexAdd');
 
-          room.on(Room.EVENT_USER_ENTER, function () {
+              room.on(Room.EVENT_USER_ENTER, function () {
+                setTimeout(function () {
+                  expect(spy).to.have.been.calledWith('UserRooms:' + user.id, 'room-2');
+                  done();
+                }, 50);
+              });
 
-            setTimeout(function () {
-              expect(spy).to.have.been.calledWith('UserRooms:' + user.id, 'room-2');
-              done();
-            }, 50);
-          });
-
-          room.addUser(user);
-        });
+              room.addUser(user);
+            });
       });
     });
+
   });
 
   describe('#removeUser', function () {
@@ -102,10 +109,10 @@ describe('Room Entity', function () {
             done();
           });
 
-          serverInstance.userManager.getById(client1.id, function (err, user) {
-            serverInstance.roomManager.lobby.removeUser(user);
-          });
-
+          serverInstance.userManager.getById(client1.id)
+              .then(function (user) {
+                serverInstance.roomManager.lobby.removeUser(user);
+              });
         });
       });
     });
@@ -117,22 +124,23 @@ describe('Room Entity', function () {
           client1 = io.connect(testOptions.socketURL, testOptions.socketOptions);
       client1.on('connect', function () {
 
-        serverInstance.userManager.getById(client1.id, function (err, user) {
-          var spy = sandbox.spy(user.socket, 'leave');
+        serverInstance.userManager.getById(client1.id)
+            .then(function (user) {
+              var spy = sandbox.spy(user.socket, 'leave');
 
-          room.on(Room.EVENT_USER_LEAVE, function () {
-            expect(spy.called).to.equal(true);
-            done();
-          });
+              room.on(Room.EVENT_USER_LEAVE, function () {
+                expect(spy.called).to.equal(true);
+                done();
+              });
 
-          room.on(Room.EVENT_USER_ENTER, function () {
-            setTimeout(function () {
-              room.removeUser(user);
-            }, 50);
-          });
+              room.on(Room.EVENT_USER_ENTER, function () {
+                setTimeout(function () {
+                  room.removeUser(user);
+                }, 50);
+              });
 
-          room.addUser(user);
-        });
+              room.addUser(user);
+            });
       });
     });
 
@@ -147,13 +155,14 @@ describe('Room Entity', function () {
       var client1 = io.connect(testOptions.socketURL, testOptions.socketOptions);
       client1.on('connect', function () {
 
-        serverInstance.userManager.getById(client1.id, function (err, user) {
-          room.addUser(user);
+        serverInstance.userManager.getById(client1.id)
+            .then(function (user) {
+              room.addUser(user);
 
-          setTimeout(function () {
-            room.removeUser(user);
-          }, 50);
-        });
+              setTimeout(function () {
+                room.removeUser(user);
+              }, 50);
+            });
       });
     });
 
@@ -163,24 +172,25 @@ describe('Room Entity', function () {
           client1 = io.connect(testOptions.socketURL, testOptions.socketOptions);
 
       client1.on('connect', function () {
-        serverInstance.userManager.getById(client1.id, function (err, user) {
-          var spy = sandbox.spy(serverInstance.storageAdapter, 'indexRemove');
+        serverInstance.userManager.getById(client1.id)
+            .then(function (user) {
+              var spy = sandbox.spy(serverInstance.storageAdapter, 'indexRemove');
 
-          room.on(Room.EVENT_USER_ENTER, function () {
-            setTimeout(function () {
-              room.removeUser(user);
-            }, 50);
-          });
+              room.on(Room.EVENT_USER_ENTER, function () {
+                setTimeout(function () {
+                  room.removeUser(user);
+                }, 50);
+              });
 
-          room.on(Room.EVENT_USER_LEAVE, function () {
-            setTimeout(function () {
-              expect(spy).to.have.been.calledWith('UserRooms:' + user.id, 'room-5');
-              done();
-            }, 50);
-          });
+              room.on(Room.EVENT_USER_LEAVE, function () {
+                setTimeout(function () {
+                  expect(spy).to.have.been.calledWith('UserRooms:' + user.id, 'room-5');
+                  done();
+                }, 50);
+              });
 
-          room.addUser(user);
-        });
+              room.addUser(user);
+            });
       });
     });
   });

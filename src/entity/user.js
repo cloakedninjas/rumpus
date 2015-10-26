@@ -36,15 +36,19 @@ User.prototype.setProperties = function (properties) {
   debug('Setting user properties for %s %j', this.id, properties);
   this.properties = properties;
 
-  this.persist(function () {
-    this.emit(User.EVENT_PROP_UPDATE, this);
-  }.bind(this));
+  this.persist()
+      .then(function () {
+        this.emit(User.EVENT_PROP_UPDATE, this);
+      }.bind(this));
 };
 
-User.prototype.persist = function (callback) {
-  this.storageAdapter.set(User.getSerializableKey(this.id), {
+/**
+ * @return {promise}
+ */
+User.prototype.persist = function () {
+  return this.storageAdapter.set(User.getSerializableKey(this.id), {
     properties: this.properties
-  }, callback);
+  });
 };
 
 /**

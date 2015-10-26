@@ -15,21 +15,26 @@ var chai = require('chai'),
 chai.use(sinonChai);
 
 describe('User Manager', function () {
+  var sandbox = sinon.sandbox.create();
+
+  beforeEach(function () {
+    serverInstance = new MultiplayerServer(testOptions.serverPort);
+  });
+
+  afterEach(function () {
+    sandbox.restore();
+    serverInstance.close();
+  });
 
   describe('#createUser', function () {
     this.slow(300);
-    before(function () {
-      serverInstance = new MultiplayerServer(testOptions.serverPort);
-    });
 
-    after(function () {
-      serverInstance.io.close();
-    });
 
     it('should create a User object and insert the Socket', function () {
       var user = serverInstance.userManager.createUser({
         id: 'aa11bb33--4',
-        on: function () {}
+        on: function () {
+        }
       });
 
       expect(user).to.be.instanceof(User);
@@ -45,31 +50,24 @@ describe('User Manager', function () {
         });
 
         setTimeout(function () {
-          serverInstance.userManager.getById(client.id, function (err, user) {
+          serverInstance.userManager.getById(client.id).then(function (user) {
             expect(user.properties.name).to.equal('Jenny');
             done();
           });
         }, 50);
-
       });
     });
   });
 
   describe('#isUserInRoom', function () {
-    after(function () {
-      serverInstance.io.close();
-    });
-
     it('should return correctly', function (done) {
       this.slow(300);
-      serverInstance = new MultiplayerServer(testOptions.serverPort);
 
       var client = io.connect(testOptions.socketURL, testOptions.socketOptions),
           room = serverInstance.roomManager.createRoom('new-room');
 
       client.on('connect', function () {
-        serverInstance.userManager.getById(client.id, function (err, user) {
-
+        serverInstance.userManager.getById(client.id).then(function (user) {
           room.on(Room.EVENT_USER_ENTER, function () {
 
             setTimeout(function () {
@@ -79,7 +77,6 @@ describe('User Manager', function () {
 
               done();
             }, 50);
-
           });
 
           room.addUser(user);
@@ -89,13 +86,8 @@ describe('User Manager', function () {
   });
 
   describe('#getRoomsUserIsIn', function () {
-    after(function () {
-      serverInstance.io.close();
-    });
-
     it('should return a list of rooms the user is in', function (done) {
       this.slow(300);
-      serverInstance = new MultiplayerServer(testOptions.serverPort);
 
       var client = io.connect(testOptions.socketURL, testOptions.socketOptions),
           room1 = serverInstance.roomManager.createRoom('room-1'),
@@ -104,14 +96,12 @@ describe('User Manager', function () {
       serverInstance.roomManager.createRoom('room-2');
 
       client.on('connect', function () {
-        serverInstance.userManager.getById(client.id, function (err, user) {
-
+        serverInstance.userManager.getById(client.id).then(function (user) {
           room1.on(Room.EVENT_USER_ENTER, function () {
 
             setTimeout(function () {
-              serverInstance.userManager.getRoomsUserIsIn(client.id, function (err, rooms) {
-
-                expect(rooms.length).to.equal(3);
+              serverInstance.userManager.getRoomsUserIsIn(client.id).then(function (rooms) {
+                expect(rooms.length).to.equal(2);
 
                 room = _.find(rooms, function (room) {
                   return room.name === RoomManager.LOBBY_NAME;
@@ -122,11 +112,6 @@ describe('User Manager', function () {
                   return room.name === 'room-1';
                 });
                 expect(room).to.not.equal(undefined, 'should be in room-1');
-
-                room = _.find(rooms, function (room) {
-                  return room.name === client.id;
-                });
-                expect(room).to.not.equal(undefined, 'should be in user\'s own room');
 
                 done();
               });
@@ -144,15 +129,14 @@ describe('User Manager', function () {
     it('should remove the user from storage', function () {
       var user = serverInstance.userManager.createUser({
         id: '78gas38-s',
-        on: function () {}
+        on: function () {
+        }
       });
 
-      var spy = sinon.spy(serverInstance.storageAdapter, 'delete');
+      var spy = sandbox.spy(serverInstance.storageAdapter, 'delete');
       serverInstance.userManager.deleteUser(user);
 
       expect(spy).to.have.been.calledWith('User:' + user.id);
-
-      spy.restore();
     });
   });
 

@@ -18,7 +18,7 @@ describe('Room Manager', function () {
 
   afterEach(function () {
     sandbox.restore();
-    serverInstance.io.close();
+    serverInstance.close();
   });
 
   this.slow(500);
@@ -47,7 +47,7 @@ describe('Room Manager', function () {
     });
 
     it('should broadcast that a user has joined if configured to', function (done) {
-      serverInstance.io.close();
+      serverInstance.close();
       serverInstance = new MultiplayerServer(testOptions.serverPort, {
         sendLobbyUsers: false,
         broadcastNewUserToLobby: true
@@ -70,7 +70,7 @@ describe('Room Manager', function () {
     });
 
     it('should not broadcast that a user has joined if configured not to', function (done) {
-      serverInstance.io.close();
+      serverInstance.close();
       serverInstance = new MultiplayerServer(testOptions.serverPort, {
         sendLobbyUsers: false,
         broadcastNewUserToLobby: false
@@ -105,7 +105,7 @@ describe('Room Manager', function () {
     });
 
     it('should only tell the new user who\'s in the lobby if configured to', function (done) {
-      serverInstance.io.close();
+      serverInstance.close();
       serverInstance = new MultiplayerServer(testOptions.serverPort, {
         sendLobbyUsers: true,
         broadcastNewUserToLobby: false
@@ -134,7 +134,7 @@ describe('Room Manager', function () {
     });
 
     it('should not only tell the new user who\'s in the lobby if configured not to', function (done) {
-      serverInstance.io.close();
+      serverInstance.close();
       serverInstance = new MultiplayerServer(testOptions.serverPort, {
         sendLobbyUsers: false,
         broadcastNewUserToLobby: false
@@ -198,7 +198,7 @@ describe('Room Manager', function () {
           socket = io.connect(testOptions.socketURL, testOptions.socketOptions);
 
       socket.on(MESSAGE.LOBBY_USERS, function () {
-        serverInstance.userManager.getById(socket.id, function (err, user) {
+        serverInstance.userManager.getById(socket.id).then(function (user) {
           roomManager.changeRoom(user, roomManager.lobby, room);
 
           setTimeout(function () {
@@ -225,10 +225,10 @@ describe('Room Manager', function () {
         client2 = io.connect(testOptions.socketURL, testOptions.socketOptions);
 
         client2.on('connect', function () {
-          userManager.getById(client1.id, function (err, user1) {
+          userManager.getById(client1.id).then(function (user1) {
             roomManager.changeRoom(user1, roomManager.lobby, room);
 
-            userManager.getById(client2.id, function (err, user2) {
+            userManager.getById(client2.id).then(function (user2) {
               roomManager.changeRoom(user2, roomManager.lobby, room);
 
               setTimeout(function () {
@@ -257,7 +257,7 @@ describe('Room Manager', function () {
         var client2 = io.connect(testOptions.socketURL, testOptions.socketOptions);
         client2.on('connect', function () {
 
-          roomManager.getRoomMembers(RoomManager.LOBBY_NAME, function (err, roomUsers) {
+          roomManager.getRoomMembers(RoomManager.LOBBY_NAME).then(function (roomUsers) {
             expect(roomUsers.length).to.equal(2);
             expect(roomUsers[0].id).to.not.equal(roomUsers[1].id);
 
