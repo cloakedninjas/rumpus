@@ -3,23 +3,24 @@
 var events = require('events'),
     util = require('util'),
     _ = require('lodash'),
+    redis = require('redis'),
     debug = require('debug')('rumpus:Room'),
     User = require('./user'),
     MESSAGE = require('../lib/message-types');
 
 /**
  * @class Room
- * @param {io} io
+ * @param {MultiplayerServer} server
  * @param {string} name
- * @param {MemoryAdapter | RedisAdapter} storageAdapter
  * @constructor
  */
-function Room(io, name, storageAdapter) {
+function Room(server, name) {
   events.EventEmitter.call(this);
 
-  this.io = io;
+  this.server = server;
+  this.io = server.io;
   this.name = name;
-  this.storageAdapter = storageAdapter;
+  this.storageAdapter = server.storageAdapter;
   this.canBeClosed = true;
   this.maxUsers = null;
   this.properties = {};
@@ -63,14 +64,21 @@ Room.prototype.addUser = function (user) {
 
   debug('Adding user %s into %s', user.id, this.name);
 
-  user.socket.join(this.name);
+  if (user.socket) {
+    user.socket.join(this.name);
+  }
+  else {
+    var pub = redis.createClient(this.server.config.redis);
+    pub.publish('COM-' + user.id, 'join-room:' + this.name);
+  }
+
   this.emit(Room.EVENT_USER_ENTER, user);
 
   if (this.maxUsers && this.getOccupancy() === this.maxUsers) {
     this.emit(Room.EVENT_ROOM_FULL);
   }
 
-  //this.storageAdapter.indexAdd(Room.getRoomUsersIndexName(this.name), user.id);
+  this.storageAdapter.indexAdd(Room.getRoomUsersIndexName(this.name), user.id);
   this.storageAdapter.indexAdd(User.getUserRoomsIndexName(user.id), this.name);
 
   return this;
@@ -83,8 +91,17 @@ Room.prototype.addUser = function (user) {
  */
 Room.prototype.removeUser = function (user) {
   debug('Removing user %s from %s', user.id, this.name);
-  user.socket.to(this.name).emit(MESSAGE.USER_LEAVE, user.id);
-  user.socket.leave(this.name);
+
+  if (user.socket) {
+    user.socket.to(this.name).emit(MESSAGE.USER_LEAVE, user.id);
+    user.socket.leave(this.name);
+  }
+  else {
+    var pub = redis.createClient(this.server.config.redis);
+    pub.publish('COM-' + user.id, 'leave-room:' + this.name);
+  }
+
+
   this.emit(Room.EVENT_USER_LEAVE, user);
 
   if (this.canBeClosed && this.getOccupancy() === 0) {
@@ -92,7 +109,7 @@ Room.prototype.removeUser = function (user) {
     this.emit(Room.EVENT_ROOM_EMPTY);
   }
 
-  //this.storageAdapter.indexRemove(Room.getRoomUsersIndexName(this.name), user.id);
+  this.storageAdapter.indexRemove(Room.getRoomUsersIndexName(this.name), user.id);
   this.storageAdapter.indexRemove(User.getUserRoomsIndexName(user.id), this.name);
 
   return this;

@@ -115,6 +115,34 @@ MultiplayerServer.prototype.removeMessageHandler = function (message) {
  * @param {Socket} socket
  */
 MultiplayerServer.prototype._handleUserConnect = function (socket) {
+  var roomManager = this.roomManager,
+      userManager = this.userManager;
+
+  if (this.config.redis) {
+    var sub = redis.createClient(this.config.redis);
+
+    sub.on('message', function (channel, message) {
+      var pieces = message.split(':'),
+          action = pieces[0],
+          entity = pieces[1];
+
+      roomManager.getByName(entity)
+          .then(function (room) {
+            userManager.getById(socket.id)
+                .then(function (user) {
+                  if (action === 'join-room') {
+                    room.addUser(user);
+                  }
+                  else if (action === 'leave-room') {
+                    room.removeUser(user);
+                  }
+                });
+          });
+    });
+
+    sub.subscribe('COM-' + socket.id);
+  }
+
   debug('User connected, reporting server version');
   socket.emit(MESSAGE.VERSION, this.config.version);
 
@@ -122,17 +150,20 @@ MultiplayerServer.prototype._handleUserConnect = function (socket) {
     debug('Socket error: %s', err);
   });
 
-  var user = this.userManager.createUser(socket);
+  var user = userManager.createUser(socket);
 
   if (!this.config.waitForPropsBeforeLobby) {
     this.roomManager.addUserToLobby(user);
   }
   else {
     socket.once(MESSAGE.USER_PROPS, function () {
-      if (!this.userManager.isUserInRoom(socket.id, RoomManager.LOBBY_NAME)) {
-        this.roomManager.addUserToLobby(user);
-      }
-    }.bind(this));
+      userManager.isUserInRoom(socket.id, RoomManager.LOBBY_NAME)
+          .then(function (result) {
+            if (!result) {
+              roomManager.addUserToLobby(user);
+            }
+          });
+    });
   }
 
   // add any custom message handlers to the new socket

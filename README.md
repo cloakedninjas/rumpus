@@ -74,8 +74,8 @@ Get an array of Users by the name of the room. This is an asynchronous operation
 ### getById(id:String):Promise
 Get a User by their ID. This is an asynchronous operation.
 
-### isUserInRoom(userId:String, roomName:String):boolean
-Check if a user is a member of a given room. Users can be in multiple rooms at once.
+### isUserInRoom(userId:String, roomName:String):Promise
+Check if a user is a member of a given room. Users can be in multiple rooms at once. This is an asynchronous operation.
 
 ### getRoomsUserIsIn(userId:String):Promise
 Given a user ID, get an array of Rooms they are in. This is an asynchronous operation.

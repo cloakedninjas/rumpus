@@ -61,7 +61,6 @@ describe('User Manager', function () {
 
   describe('#isUserInRoom', function () {
     it('should return correctly', function (done) {
-      this.slow(300);
 
       var client = io.connect(testOptions.socketURL, testOptions.socketOptions),
           room = serverInstance.roomManager.createRoom('new-room');
@@ -70,13 +69,22 @@ describe('User Manager', function () {
         serverInstance.userManager.getById(client.id).then(function (user) {
           room.on(Room.EVENT_USER_ENTER, function () {
 
-            setTimeout(function () {
-              expect(serverInstance.userManager.isUserInRoom(client.id, 'non-existent-room')).to.equal(false, 'should not be in a non existent room');
-              expect(serverInstance.userManager.isUserInRoom(client.id, RoomManager.LOBBY_NAME)).to.equal(true, 'should be in lobby');
-              expect(serverInstance.userManager.isUserInRoom(client.id, 'new-room')).to.equal(true, 'should be in new-room');
+            serverInstance.userManager.isUserInRoom(client.id, 'non-existent-room')
+                .then(function (result) {
+                  expect(result).to.equal(false);
 
-              done();
-            }, 50);
+                  serverInstance.userManager.isUserInRoom(client.id, RoomManager.LOBBY_NAME)
+                      .then(function (result) {
+                        expect(result).to.equal(true);
+
+                        serverInstance.userManager.isUserInRoom(client.id, 'new-room')
+                            .then(function (result) {
+                              expect(result).to.equal(true);
+
+                              done();
+                            });
+                      });
+                });
           });
 
           room.addUser(user);

@@ -21,15 +21,10 @@ describe('Room Manager', function () {
     serverInstance.close();
   });
 
-  this.slow(500);
-
   describe('#createLobby', function () {
     it('should create a lobby', function () {
-      var roomManager = new RoomManager(serverInstance);
-      roomManager.createLobby();
-
-      expect(roomManager.lobby).to.be.instanceof(Room);
-      expect(roomManager.lobby.name).to.equal(RoomManager.LOBBY_NAME);
+      expect(serverInstance.roomManager.lobby).to.be.instanceof(Room);
+      expect(serverInstance.roomManager.lobby.name).to.equal(RoomManager.LOBBY_NAME);
     });
   });
 
@@ -70,6 +65,7 @@ describe('Room Manager', function () {
     });
 
     it('should not broadcast that a user has joined if configured not to', function (done) {
+      this.slow(300);
       serverInstance.close();
       serverInstance = new MultiplayerServer(testOptions.serverPort, {
         sendLobbyUsers: false,
@@ -134,6 +130,7 @@ describe('Room Manager', function () {
     });
 
     it('should not only tell the new user who\'s in the lobby if configured not to', function (done) {
+      this.slow(300);
       serverInstance.close();
       serverInstance = new MultiplayerServer(testOptions.serverPort, {
         sendLobbyUsers: false,
@@ -201,13 +198,18 @@ describe('Room Manager', function () {
         serverInstance.userManager.getById(socket.id).then(function (user) {
           roomManager.changeRoom(user, roomManager.lobby, room);
 
-          setTimeout(function () {
-            expect(serverInstance.userManager.isUserInRoom(user.id, 'Bob')).to.equal(true);
-            expect(serverInstance.userManager.isUserInRoom(user.id, RoomManager.LOBBY_NAME)).to.equal(false);
+          serverInstance.userManager.isUserInRoom(user.id, 'Bob')
+              .then(function (result) {
+                expect(result).to.equal(true);
 
-            socket.disconnect();
-            done();
-          }, 50);
+                serverInstance.userManager.isUserInRoom(user.id, RoomManager.LOBBY_NAME)
+                    .then(function (result) {
+                      expect(result).to.equal(false);
+
+                      socket.disconnect();
+                      done();
+                    });
+              });
         });
       });
     });
@@ -231,15 +233,19 @@ describe('Room Manager', function () {
             userManager.getById(client2.id).then(function (user2) {
               roomManager.changeRoom(user2, roomManager.lobby, room);
 
-              setTimeout(function () {
-                expect(userManager.isUserInRoom(user1.id, 'room75')).to.equal(true);
-                expect(userManager.isUserInRoom(user2.id, 'room75')).to.equal(false);
+              userManager.isUserInRoom(user1.id, 'room75')
+                  .then(function (result) {
+                    expect(result).to.equal(true);
 
-                client1.disconnect();
-                client2.disconnect();
-                done();
+                    userManager.isUserInRoom(user2.id, 'room75')
+                        .then(function (result) {
+                          expect(result).to.equal(false);
 
-              }, 50);
+                          client1.disconnect();
+                          client2.disconnect();
+                          done();
+                        });
+                  });
             });
           });
         });

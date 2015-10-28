@@ -2,6 +2,8 @@
 
 var _ = require('lodash'),
     Q = require('q'),
+    io = require('socket.io'),
+    RemoteSocket = require('./remoteSocket'),
     User = require('../entity/user'),
     debug = require('debug')('rumpus:UserManager'),
     MESSAGE = require('../lib/message-types.js');
@@ -52,7 +54,16 @@ UserManager.prototype.getById = function (id) {
         debug('Fetched user: %s', id);
         var user = new User(id, this.server.storageAdapter);
 
-        user.setSocket(this.server.io.sockets.connected[id]);
+        var socket = this.server.io.sockets.connected[id];
+
+        if (!socket) {
+          // socket is held on another server
+          socket = new RemoteSocket(this.server.config.redis, id);
+        }
+
+        console.log('ID:', socket.id);
+
+        user.setSocket(socket);
 
         if (data) {
           user.hydrate(data);
@@ -77,16 +88,16 @@ UserManager.prototype.deleteUser = function (user) {
  *
  * @param {string} userId
  * @param {string} roomName
- * @returns {boolean}
+ * @returns {promise}
  */
 UserManager.prototype.isUserInRoom = function (userId, roomName) {
-  var socket = this.server.io.sockets.connected[userId];
+  return this.server.storageAdapter.indexGet(User.getUserRoomsIndexName(userId))
+      .then(function (roomNames) {
+        return _.find(roomNames, function (room) {
 
-  if (socket) {
-    return socket.rooms.indexOf(roomName) !== -1;
-  }
-
-  return false;
+          return room === roomName;
+        }) !== undefined;
+      });
 };
 
 /**
@@ -95,6 +106,7 @@ UserManager.prototype.isUserInRoom = function (userId, roomName) {
  * @returns {promise}
  */
 UserManager.prototype.getRoomsUserIsIn = function (userId) {
+  // TODO - fix
   var socket = this.server.io.sockets.connected[userId],
       rooms = [],
       roomCount = 0,

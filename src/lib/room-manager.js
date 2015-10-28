@@ -16,8 +16,20 @@ function RoomManager(server) {
   this.server = server;
 }
 
+/**
+ * Check if there already is a lobby, if not create one
+ * @return {RoomManager}
+ */
 RoomManager.prototype.createLobby = function () {
-  this.lobby = this.createRoom(RoomManager.LOBBY_NAME, null, false);
+  this.getByName(RoomManager.LOBBY_NAME)
+      .then(function (lobby) {
+        if (!lobby) {
+          lobby = this.createRoom(RoomManager.LOBBY_NAME, null, false);
+        }
+
+        this.lobby = lobby;
+      }.bind(this));
+
   return this;
 };
 
@@ -33,13 +45,13 @@ RoomManager.prototype.addUserToLobby = function (user) {
     this.server.io.to(RoomManager.LOBBY_NAME).emit(MESSAGE.USER_JOIN, user.toBroadcastData());
   }
 
-  if (this.server.config.sendLobbyUsers) {
-    // tell the user who's in the lobby
-    this.broadcastRoomMembers(RoomManager.LOBBY_NAME, user);
-  }
-
   // add the user into the lobby
   this.lobby.addUser(user);
+
+  if (this.server.config.sendLobbyUsers) {
+    // tell the new user who else is in the lobby
+    this.broadcastRoomMembers(RoomManager.LOBBY_NAME, user);
+  }
 
   return this;
 };
@@ -61,7 +73,7 @@ RoomManager.prototype.createRoom = function (name, maxUsers, canBeClosed) {
     canBeClosed = true;
   }
 
-  var room = new Room(this.server.io, name, this.server.storageAdapter);
+  var room = new Room(this.server, name);
 
   room.canBeClosed = canBeClosed;
   room.maxUsers = maxUsers || this.server.config.roomLimit;
@@ -99,7 +111,7 @@ RoomManager.prototype.changeRoom = function (user, oldRoom, newRoom) {
 RoomManager.prototype.getByName = function (name) {
   return this.server.storageAdapter.get(Room.getSerializableKey(name))
       .then(function (data) {
-        var room = new Room(this.server.io, name, this.server.storageAdapter);
+        var room = new Room(this.server, name);
 
         if (data) {
           room.hydrate(data);
@@ -116,41 +128,36 @@ RoomManager.prototype.getByName = function (name) {
 RoomManager.prototype.getRoomMembers = function (roomName) {
   debug('Getting room members for %s', roomName);
 
-  var namespace = '/',
-      socketIds = this.server.io.nsps[namespace].adapter.rooms[roomName],
-      deferred = Q.defer();
+  var deferred = Q.defer();
 
-  if (socketIds) {
-    var socketIdCount = Object.keys(socketIds).length,
-        users = [],
-        userCount = 0;
+  this.server.storageAdapter.indexGet(Room.getRoomUsersIndexName(RoomManager.LOBBY_NAME))
+      .then(function (userIds) {
+        var userIdCount = userIds.length,
+            users = [],
+            userCount = 0;
 
-    if (socketIdCount > 0) {
-      var userManager = this.server.userManager;
+        if (userIdCount > 0) {
+          var userManager = this.server.userManager;
 
-      _.each(socketIds, function (val, socketId) {
-        userManager.getById(socketId)
-            .then(function (user) {
-              users.push(user);
+          _.each(userIds, function (userId) {
+            userManager.getById(userId)
+                .then(function (user) {
+                  users.push(user);
 
-              userCount++;
+                  userCount++;
 
-              if (userCount === socketIdCount) {
-                debug('Found %d room members for %s', users.length, roomName);
-                deferred.resolve(users);
-              }
-            });
-      });
-    }
-    else {
-      debug('No users in %s', roomName);
-      deferred.resolve([]);
-    }
-  }
-  else {
-    debug('No users in %s', roomName);
-    deferred.resolve([]);
-  }
+                  if (userCount === userIdCount) {
+                    debug('Found %d room members for %s', users.length, roomName);
+                    deferred.resolve(users);
+                  }
+                });
+          });
+        }
+        else {
+          debug('No users in %s', roomName);
+          deferred.resolve([]);
+        }
+      }.bind(this));
 
   return deferred.promise;
 };
@@ -161,12 +168,15 @@ RoomManager.prototype.getRoomMembers = function (roomName) {
  * @param {User} recipientUser
  */
 RoomManager.prototype.broadcastRoomMembers = function (roomName, recipientUser) {
+  debug('broadcasting room members to %s for room %s', recipientUser.id, roomName);
   this.getRoomMembers(roomName)
       .then(function (users) {
         var broadcastUsers = [];
 
         _.each(users, function (user) {
-          broadcastUsers.push(user.toBroadcastData());
+          if (user.id !== recipientUser.id) {
+            broadcastUsers.push(user.toBroadcastData());
+          }
         });
 
         recipientUser.socket.emit(MESSAGE.LOBBY_USERS, broadcastUsers);
