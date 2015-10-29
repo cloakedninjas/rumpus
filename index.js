@@ -1,3 +1,3 @@
 'use strict';
 
-module.exports = require('./src/lib/multiplayer-server');
+module.exports = require('./src/server');
