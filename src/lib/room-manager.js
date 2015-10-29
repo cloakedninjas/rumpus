@@ -185,6 +185,16 @@ RoomManager.prototype.broadcastRoomMembers = function (roomName, recipientUser) 
   return this;
 };
 
+RoomManager.prototype.onMessage = function (message) {
+  message = JSON.parse(message);
+
+  switch (message.type) {
+    case 'add-user':
+      // get room, get user, call room.addUser(user)
+      break;
+  }
+};
+
 RoomManager.LOBBY_NAME = 'lobby';
 
 module.exports = RoomManager;

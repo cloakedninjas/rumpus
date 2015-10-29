@@ -12,6 +12,7 @@ var events = require('events'),
     RoomManager = require('./room-manager'),
     UserManager = require('./user-manager'),
     User = require('../entity/user'),
+    Room = require('../entity/room'),
 
     MESSAGE = require('./message-types'),
 
@@ -64,6 +65,8 @@ function MultiplayerServer(port, config) {
       port: this.config.redis.port,
       key: this.config.redis.key + MultiplayerServer.NS_REDIS_SIO
     }));
+
+    this._attachPubSub();
   }
   else {
     this.storageAdapter = new MemoryAdapter();
@@ -110,6 +113,52 @@ MultiplayerServer.prototype.removeMessageHandler = function (message) {
   return this;
 };
 
+MultiplayerServer.prototype._attachPubSub = function () {
+  // create pub/sub channels
+  this.sub = redis.createClient({
+    host: this.config.redis.host,
+    port: this.config.redis.port
+  });
+
+  this.sub.on('error', function (err) {
+    console.error('sub error: ', err);
+  });
+
+  this.pub = redis.createClient({
+    host: this.config.redis.host,
+    port: this.config.redis.port
+  });
+
+  this.pub.on('error', function (err) {
+    console.error('pub error: ', err);
+  });
+
+  this.sub.on('message', function (channel, message) {
+    console.log('incomming message', channel, message);
+
+    var channelData = channel.split(':');
+
+    switch (channelData[0]) {
+      case 'user':
+        var userId = channelData[1];
+
+        if (userId) {
+          this.userManager.onMessage(userId, message);
+        }
+        break;
+
+      case 'room':
+        var roomId = channelData[1];
+
+        if (roomId) {
+          this.roomManager.onMessage(roomId, message);
+        }
+        break;
+        break;
+    }
+  }.bind(this));
+};
+
 /**
  *
  * @param {Socket} socket
@@ -118,36 +167,11 @@ MultiplayerServer.prototype._handleUserConnect = function (socket) {
   var roomManager = this.roomManager,
       userManager = this.userManager;
 
-  if (this.config.redis) {
-    var sub = redis.createClient(this.config.redis);
-
-    sub.on('message', function (channel, message) {
-      var pieces = message.split(':'),
-          action = pieces[0],
-          entity = pieces[1];
-
-      roomManager.getByName(entity)
-          .then(function (room) {
-            userManager.getById(socket.id)
-                .then(function (user) {
-                  if (action === 'join-room') {
-                    room.addUser(user);
-                  }
-                  else if (action === 'leave-room') {
-                    room.removeUser(user);
-                  }
-                });
-          });
-    });
-
-    sub.subscribe('COM-' + socket.id);
-  }
-
   debug('User connected, reporting server version');
   socket.emit(MESSAGE.VERSION, this.config.version);
 
   socket.on('error', function (err) {
-    debug('Socket error: %s', err);
+    console.error('Socket error:', err);
   });
 
   var user = userManager.createUser(socket);
@@ -170,6 +194,10 @@ MultiplayerServer.prototype._handleUserConnect = function (socket) {
   _.each(this.messageHandlers, function (handler, message) {
     socket.on(message, handler.bind(this, socket));
   }, this);
+
+  if (this.config.redis) {
+    this.sub.subscribe('user:' + socket.id);
+  }
 
   socket.on('disconnect', this._handleUserDisconnect.bind(this, user));
 

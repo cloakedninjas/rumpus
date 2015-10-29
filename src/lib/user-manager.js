@@ -15,6 +15,7 @@ var _ = require('lodash'),
  */
 function UserManager(server) {
   this.server = server;
+  this.users = {};
 }
 
 /**
@@ -25,12 +26,14 @@ function UserManager(server) {
  */
 UserManager.prototype.createUser = function (socket) {
   debug('Creating user, id is %s', socket.id);
-  var user = new User(socket.id, this.server.storageAdapter);
+  var user = new User(socket.id, this.server);
   user.setSocket(socket);
 
   socket.on(MESSAGE.USER_PROPS, user.setProperties.bind(user));
 
   user.persist();
+
+  this.users[socket.id] = user;
 
   return user;
 };
@@ -44,33 +47,24 @@ UserManager.prototype.createUser = function (socket) {
 UserManager.prototype.getById = function (id) {
   debug('getById(%s)', id);
 
-  /*if (Array.isArray(id)) {
-   return Q.all(_.map(id, this.getById));
-   }*/
-
   var deferred = Q.defer();
-  this.server.storageAdapter.get(User.getSerializableKey(id))
-      .then(function (data) {
-        debug('Fetched user: %s', id);
-        var user = new User(id, this.server.storageAdapter);
 
-        var socket = this.server.io.sockets.connected[id];
+  if (this.users[id]) {
+    deferred.resolve(this.users[id]);
+  }
+  else {
+    this.server.storageAdapter.get(User.getSerializableKey(id))
+        .then(function (data) {
+          debug('Fetched user: %s', id);
+          var user = new User(id, this.server);
 
-        if (!socket) {
-          // socket is held on another server
-          socket = new RemoteSocket(this.server.config.redis, id);
-        }
+          if (data) {
+            user.hydrate(data);
+          }
 
-        console.log('ID:', socket.id);
-
-        user.setSocket(socket);
-
-        if (data) {
-          user.hydrate(data);
-        }
-
-        deferred.resolve(user);
-      }.bind(this), deferred.reject);
+          deferred.resolve(user);
+        }.bind(this), deferred.reject);
+  }
 
   return deferred.promise;
 };
@@ -106,36 +100,40 @@ UserManager.prototype.isUserInRoom = function (userId, roomName) {
  * @returns {promise}
  */
 UserManager.prototype.getRoomsUserIsIn = function (userId) {
-  // TODO - fix
-  var socket = this.server.io.sockets.connected[userId],
-      rooms = [],
+  var rooms = [],
       roomCount = 0,
-      deferred = Q.defer();
+      deferred = Q.defer(),
+      roomManager = this.server.roomManager;
 
-  if (socket && socket.rooms.length > 0) {
-    var roomManager = this.server.roomManager;
+  this.server.storageAdapter.indexGet(User.getUserRoomsIndexName(userId))
+      .then(function (roomNames) {
+        _.each(roomNames, function (roomName) {
+          roomManager.getByName(roomName).then(function (room) {
+            roomCount++;
 
-    _.each(socket.rooms, function (roomName) {
-      roomManager.getByName(roomName).then(function (room) {
-        roomCount++;
+            if (room) {
+              rooms.push(room);
+            }
 
-        if (room) {
-          rooms.push(room);
-        }
-
-        if (roomCount === socket.rooms.length) {
-          debug('User %s belongs to %d rooms', userId, socket.rooms.length);
-          deferred.resolve(rooms);
-        }
+            if (roomCount === roomNames.length) {
+              debug('User %s belongs to %d rooms', userId, roomNames.length);
+              deferred.resolve(rooms);
+            }
+          });
+        });
       });
-    });
-  }
-  else {
-    debug('User %s belongs to 0 rooms', userId);
-    deferred.resolve([]);
-  }
 
   return deferred.promise;
+};
+
+UserManager.prototype.onMessage = function (message) {
+  message = JSON.parse(message);
+
+  switch (message.type) {
+    case 'prop-change':
+      this.emit(User.EVENT_PROP_UPDATE, this);
+      break;
+  }
 };
 
 module.exports = UserManager;

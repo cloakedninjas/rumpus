@@ -8,12 +8,13 @@ var events = require('events'),
 /**
  * @class User
  * @param {string} id
- * @param {MemoryAdapter | RedisAdapter} storageAdapter
+ * @param {MultiplayerServer} server
  * @constructor
  */
-function User(id, storageAdapter) {
+function User(id, server) {
   this.id = id;
-  this.storageAdapter = storageAdapter;
+  this.server = server;
+  this.storageAdapter = server.storageAdapter;
 }
 
 util.inherits(User, events.EventEmitter);
@@ -38,7 +39,14 @@ User.prototype.setProperties = function (properties) {
 
   this.persist()
       .then(function () {
-        this.emit(User.EVENT_PROP_UPDATE, this);
+        if (this.server.pub) {
+          this.server.pub.publish('user:' + this.id, JSON.stringify({
+            type: 'prop-change'
+          }));
+        }
+        else {
+          this.emit(User.EVENT_PROP_UPDATE, this);
+        }
       }.bind(this));
 };
 
