@@ -70,7 +70,7 @@ Room.prototype.addUser = function (user) {
     this.emit(Room.EVENT_ROOM_FULL);
   }
 
-  //this.storageAdapter.indexAdd(Room.getRoomUsersIndexName(this.name), user.id);
+  this.storageAdapter.indexAdd(Room.getRoomUsersIndexName(this.name), user.id);
   this.storageAdapter.indexAdd(User.getUserRoomsIndexName(user.id), this.name);
 
   return this;
@@ -92,7 +92,7 @@ Room.prototype.removeUser = function (user) {
     this.emit(Room.EVENT_ROOM_EMPTY);
   }
 
-  //this.storageAdapter.indexRemove(Room.getRoomUsersIndexName(this.name), user.id);
+  this.storageAdapter.indexRemove(Room.getRoomUsersIndexName(this.name), user.id);
   this.storageAdapter.indexRemove(User.getUserRoomsIndexName(user.id), this.name);
 
   return this;

@@ -2,6 +2,7 @@
 
 var _ = require('lodash'),
     Q = require('q'),
+    uuid = require('node-uuid'),
     User = require('../entity/user'),
     debug = require('debug')('rumpus:UserManager'),
     MESSAGE = require('../lib/message-types.js');
@@ -22,9 +23,10 @@ function UserManager(server) {
  * @returns {User}
  */
 UserManager.prototype.createUser = function (socket) {
-  debug('Creating user, id is %s', socket.id);
-  var user = new User(socket.id, this.server.storageAdapter);
+  var user = new User(uuid.v1(), this.server.storageAdapter);
   user.setSocket(socket);
+
+  debug('Creating user, id is %s', user.id);
 
   socket.on(MESSAGE.USER_PROPS, user.setProperties.bind(user));
 

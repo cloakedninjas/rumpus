@@ -26,7 +26,7 @@ RoomManager.prototype.createLobby = function () {
  * @param {User} user
  */
 RoomManager.prototype.addUserToLobby = function (user) {
-  debug('Adding %s to lobby', user.id);
+  debug('Adding %s to lobby', user.socket.conn.id);
 
   if (this.server.config.broadcastNewUserToLobby) {
     // tell whole lobby, new user has joined
@@ -116,41 +116,42 @@ RoomManager.prototype.getByName = function (name) {
 RoomManager.prototype.getRoomMembers = function (roomName) {
   debug('Getting room members for %s', roomName);
 
-  var namespace = '/',
-      socketIds = this.server.io.nsps[namespace].adapter.rooms[roomName],
-      deferred = Q.defer();
+  var deferred = Q.defer();
 
-  if (socketIds) {
-    var socketIdCount = Object.keys(socketIds).length,
-        users = [],
-        userCount = 0;
+  this.server.storageAdapter.indexGet(Room.getRoomUsersIndexName(roomName))
+      .then(function (socketIds) {
+        if (socketIds) {
+          var socketIdCount = Object.keys(socketIds).length,
+              users = [],
+              userCount = 0;
 
-    if (socketIdCount > 0) {
-      var userManager = this.server.userManager;
+          if (socketIdCount > 0) {
+            var userManager = this.server.userManager;
 
-      _.each(socketIds, function (val, socketId) {
-        userManager.getById(socketId)
-            .then(function (user) {
-              users.push(user);
+            _.each(socketIds, function (socketId) {
+              userManager.getById(socketId)
+                  .then(function (user) {
+                    users.push(user);
 
-              userCount++;
+                    userCount++;
 
-              if (userCount === socketIdCount) {
-                debug('Found %d room members for %s', users.length, roomName);
-                deferred.resolve(users);
-              }
+                    if (userCount === socketIdCount) {
+                      debug('Found %d room members for %s', users.length, roomName);
+                      deferred.resolve(users);
+                    }
+                  });
             });
-      });
-    }
-    else {
-      debug('No users in %s', roomName);
-      deferred.resolve([]);
-    }
-  }
-  else {
-    debug('No users in %s', roomName);
-    deferred.resolve([]);
-  }
+          }
+          else {
+            debug('No users in %s', roomName);
+            deferred.resolve([]);
+          }
+        }
+        else {
+          debug('No users in %s', roomName);
+          deferred.resolve([]);
+        }
+      }.bind(this));
 
   return deferred.promise;
 };
@@ -166,7 +167,9 @@ RoomManager.prototype.broadcastRoomMembers = function (roomName, recipientUser) 
         var broadcastUsers = [];
 
         _.each(users, function (user) {
-          broadcastUsers.push(user.toBroadcastData());
+          if (recipientUser.id !== user.id) {
+            broadcastUsers.push(user.toBroadcastData());
+          }
         });
 
         recipientUser.socket.emit(MESSAGE.LOBBY_USERS, broadcastUsers);
