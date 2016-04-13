@@ -88,6 +88,7 @@ Room.prototype.removeUser = function (user) {
   this.emit(Room.EVENT_USER_LEAVE, user);
 
   if (this.canBeClosed && this.getOccupancy() === 0) {
+    this.storageAdapter.delete(Room.getSerializableKey(this.name));
     this.emit(Room.EVENT_ROOM_EMPTY);
   }
 

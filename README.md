@@ -1,5 +1,7 @@
 # rumpus
 
+[![npm version](https://badge.fury.io/js/rumpus.svg)](https://badge.fury.io/js/rumpus)
+
 ## Installation
 
 `npm install rumpus --save`
