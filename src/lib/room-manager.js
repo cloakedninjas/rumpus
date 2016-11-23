@@ -2,7 +2,7 @@
 
 var _ = require('lodash'),
     Q = require('q'),
-    uuid = require('node-uuid'),
+    uuid = require('uuid'),
     debug = require('debug')('rumpus:RoomManager'),
     Room = require('../entity/room'),
     MESSAGE = require('./message-types');
